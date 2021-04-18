@@ -12,7 +12,7 @@
 #include "error_check.h"
 
 // CUDA: use 512 threads per block
-#define CUDA_NUM_THREADS 1024
+#define CUDA_NUM_THREADS 512
 
 // CUDA: number of blocks for threads.
 #define CUDA_GET_BLOCKS(N) (N + CUDA_NUM_THREADS - 1) / CUDA_NUM_THREADS
@@ -22,11 +22,6 @@
     for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < (n); i += blockDim.x * gridDim.x)
 
 #define FLOAT_MAX 3.402823466e+38F        /* max value */
-
-#define MAX_FRAME_H 1920
-#define MAX_FRAME_W 1920
-#define MAX_FRAME_C 1920
-
 
 using namespace nvinfer1;
 
