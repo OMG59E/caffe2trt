@@ -16,10 +16,10 @@ message(STATUS "CUDA detected: " ${CUDA_VERSION})
 set(CUDA_NVCC_FLAGS
         --disable-warnings;
         -O3;
-        -use_fast_math;
-        -gencode arch=compute_52,code=sm_52;
-        -gencode arch=compute_61,code=sm_61;
-        -gencode arch=compute_70,code=sm_70;
+        #-use_fast_math;
+        #-gencode arch=compute_52,code=sm_52;
+        #-gencode arch=compute_61,code=sm_61;
+        #-gencode arch=compute_70,code=sm_70;
         -gencode arch=compute_75,code=sm_75;
         )
 
