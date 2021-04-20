@@ -2819,4 +2819,10 @@ layer {
     bias_term: true
   }
 }
+layer {
+  name: "cls"
+  type: "Softmax"
+  bottom: "582"
+  top: "583"
+}
 
