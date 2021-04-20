@@ -27,6 +27,7 @@ TensorRT 官方目前支持Layer，见[链接](https://docs.nvidia.com/deeplearn
 | Model          | Input Size | Batch | Original Model | TRT FP32 | TRT FP16 | TRT INT8 |  Device   |
 | -------------- | ---------- | ----- | -------------- | -------- | -------- | -------- | --- |
 | ResNet50-IBN-a |  3x224x224 |   32  | 103.44/106.65  | 72.71/74.81 | 24.24/25.73 | 17.83/19.50 |  Tesla T4 |
+| ResNet50-IBN-a |  3x224x224 |   32  | 56.38/58.81  | 28.75/29.43 | 10.33/10.91 | 8.49/9.08 | RTX 2080Ti |
 
 # Build 
  **Dependencies**
