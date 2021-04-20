@@ -72,6 +72,10 @@ int Slice::enqueue(int batchSize, const void *const *inputs, void **outputs, voi
         auto bottom_data = reinterpret_cast<const __half*>(inputs[0]);
         SliceForward(stream, bottom_data,
                 num_slices, axis_, slice_size, bottom_slice_axis, top_shapes_, outputs);
+    } else if (data_type_ == DataType::kINT8) {
+        auto bottom_data = reinterpret_cast<const int8_t*>(inputs[0]);
+        SliceForward(stream, bottom_data,
+                     num_slices, axis_, slice_size, bottom_slice_axis, top_shapes_, outputs);
     };
 
     return 0;
