@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     NetParameter param;
     param.input_shape = DimsNCHW{batch_size, 3, 224, 224};
     param.input_node_name = "data";
-    param.output_node_names = {"582"};
+    param.output_node_names = {"583"};
     param.mean_val[0] = 123.675f;
     param.mean_val[1] = 116.28f;
     param.mean_val[2] = 103.53f;
