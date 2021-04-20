@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
     google::InitGoogleLogging(argv[0]);
 
     const char* imgFile = "../data/person_0003.jpg";
-    const char *engineFile = "../engines/IBN.engine";
+    const char *engineFile = "../engines/resnet50_ibn_a-d9d0bb7b_opt.engine";
     const int device_id = 0;
     const int batch_size = 32;
     const int iterations = 1000;
