@@ -29,7 +29,7 @@ fi
 # only for int8
 calibBatchSize=32
 calibMaxBatches=1000
-calibFirstBatch=1000
+calibFirstBatch=10
 dataDir=../data/imagenet/batches
 
 ../build/caffe2trt  \
