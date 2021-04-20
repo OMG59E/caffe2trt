@@ -26,6 +26,12 @@ if [ ! -d "../engines" ]; then
     mkdir "../engines"
 fi
 
+# only for int8
+calibBatchSize=32
+calibMaxBatches=1000
+calibFirstBatch=1000
+dataDir=../data/imagenet/batches
+
 ../build/caffe2trt  \
 --model=${model} \
 --deploy=${deploy} \
@@ -34,5 +40,9 @@ fi
 --output=${output} \
 --batch=${batch} \
 --dataType=${dataType} \
+--dataDir=${dataDir} \
+--calibBatchSize=${calibBatchSize} \
+--calibMaxBatches=${calibMaxBatches} \
+--calibFirstBatch=${calibFirstBatch} \
 --workspace=8192 \
 --device=0
