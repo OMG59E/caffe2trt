@@ -61,6 +61,8 @@ namespace alg {
 
             bool inference(const std::vector<alg::Mat> &vGpuImages, std::vector<alg::Tensor> &vOutputTensors);
 
+            bool inference(const float* batch_data, int batch_size, std::vector<alg::Tensor> &vOutputTensors);
+
             int getNbOutputs() const;
 
             DimsNCHW getInputShape() const;

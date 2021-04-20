@@ -114,7 +114,8 @@ namespace alg {
             }
         }
 
-        bool NetOperator::inference(const std::vector<alg::Mat> &vGpuImages, std::vector<alg::Tensor> &vOutputTensors) {
+        bool NetOperator::inference(const std::vector<alg::Mat> &vGpuImages,
+                std::vector<alg::Tensor> &vOutputTensors) {
             vOutputTensors.clear();
 
             if (resize_mode_ == "v1") {
@@ -221,8 +222,8 @@ namespace alg {
             int offset = input_shape_.c() * input_shape_.h() * input_shape_.w();
 
             for (auto &img : vGpuImages) {
-//                if (color_mode_ == "RGB")
-//                    cvtColor_(img.ptr(), img.c(), img.h(), img.w(), alg::nv::NV_BGR2RGB_);
+                if (color_mode_ == "RGB")
+                    cvtColor_(img.ptr(), img.c(), img.h(), img.w(), alg::nv::NV_BGR2RGB_);
 
                 alg::nv::resizeNormPermuteOp(img.ptr(), img.c(), img.h(), img.w(),
                                              o_ptr, input_shape_.h(), input_shape_.w(), scale_, mean_val_);
@@ -232,6 +233,30 @@ namespace alg {
 
             duration<float, std::micro> time_span = high_resolution_clock::now() - t_start;
             DLOG(INFO) << "preprocess_gpu: " << time_span.count() * 0.001f << "ms";
+
+            return true;
+        }
+
+        bool NetOperator::inference(const float *batch_data,
+                const int batch_size, std::vector<alg::Tensor> &vOutputTensors) {
+            vOutputTensors.clear();
+
+            CUDACHECK(cudaMemcpy(input_tensor_.gpu_data, batch_data,
+                                 batch_size * input_tensor_.size() * sizeof(float), cudaMemcpyHostToDevice));
+            // forward
+            if (!ctx_->enqueue(batch_size, buffers_, stream_, nullptr)) {
+                LOG(ERROR) << "ctx_->enqueue infer failed.";
+                return false;
+            }
+
+            for (auto &tensor : output_tensors_) {
+                CUDACHECK(cudaMemcpyAsync(tensor.data, tensor.gpu_data,
+                        input_shape_.n() * tensor.size() * sizeof(float), cudaMemcpyDeviceToHost, stream_));
+            }
+
+            CUDACHECK(cudaStreamSynchronize(stream_));
+
+            vOutputTensors.assign(output_tensors_.begin(), output_tensors_.end());
 
             return true;
         }
