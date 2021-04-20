@@ -43,7 +43,7 @@ void SliceForward(cudaStream_t stream, const Dtype *bottom_data, int num_slices,
                 top_slice_axis,
                 offset_slice_axis,
                 top_data);
-        CUDACHECK(cudaStreamSynchronize(stream));
+        // CUDACHECK(cudaStreamSynchronize(stream));
         offset_slice_axis += top_slice_axis;
     }
 }

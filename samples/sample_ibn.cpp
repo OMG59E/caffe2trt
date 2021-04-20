@@ -51,11 +51,16 @@ int main(int argc, char **argv) {
     FLAGS_logtostderr = true;
     google::InitGoogleLogging(argv[0]);
 
-    const std::string data_dir = "../data/imagenet/batches/";
-    const std::string filepath = "../data/imagenet/batch_list.txt";;
-    const std::string engineFile = "../engines/resnet50_ibn_a-d9d0bb7b_opt.engine";
-    const int device_id = 0;
-    const int batch_size = 32;
+    if (argc != 6) {
+        LOG(ERROR) << "input param error, argc must be equal 6";
+        return -1;
+    }
+
+    const std::string data_dir = argv[1];
+    const std::string filepath = argv[2];
+    const std::string engineFile = argv[3];
+    const int device_id = std::stoi(argv[4]);
+    const int batch_size = std::stoi(argv[5]);;
 
     NetParameter param;
     param.input_shape = DimsNCHW{batch_size, 3, 224, 224};

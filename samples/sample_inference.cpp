@@ -16,11 +16,16 @@ int main(int argc, char **argv) {
     FLAGS_logtostderr = true;
     google::InitGoogleLogging(argv[0]);
 
-    const char* imgFile = "../data/person_0003.jpg";
-    const char *engineFile = "../engines/resnet50_ibn_a-d9d0bb7b_opt.engine";
-    const int device_id = 0;
-    const int batch_size = 32;
-    const int iterations = 1000;
+    if (argc != 6) {
+        LOG(ERROR) << "input param error, argc must be equal 6";
+        return -1;
+    }
+
+    const char* imgFile = argv[1];
+    const char *engineFile = argv[2];
+    const int device_id = std::stoi(argv[3]);
+    const int batch_size = std::stoi(argv[4]);
+    const int iterations = std::stoi(argv[5]);
 
     NetParameter param;
     param.input_shape = DimsNCHW{batch_size, 3, 224, 224};
