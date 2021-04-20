@@ -8,9 +8,9 @@ TensorRT 官方目前支持Layer，见[链接](https://docs.nvidia.com/deeplearn
 
 | Layer | FP32 | FP16 | INT8 |
 | ----- | ---- | ---- | ---- |
-| Slice |   yes  |  yes    |   no   |
-| InstanceNorm      |  yes    |   yes    |  yes     |
-|       |      |      |      |
+| Slice |  yes  |  yes  |  yes  |
+| InstanceNorm |  yes |  yes  |  yes  |
+
 
 # Support Model
 
@@ -18,8 +18,7 @@ TensorRT 官方目前支持Layer，见[链接](https://docs.nvidia.com/deeplearn
 
 | Model          | Original Model | TRT FP32 | TRT FP16 | TRT INT8 |     |
 | -------------- | -------------- | -------- | -------- | -------- | --- |
-| ResNet50-IBN-a |                |          |          |          |  top1/top5   |
-|                |                |          |          |          |     |
+| ResNet50-IBN-a | 77.118/93.572  | 77.118/93.572 | 77.142/93.574 | 75.676/92.858 | top1/top5 |
 
 **Model Latency**
 
@@ -27,8 +26,7 @@ TensorRT 官方目前支持Layer，见[链接](https://docs.nvidia.com/deeplearn
 
 | Model          | Input Size | Batch | Original Model | TRT FP32 | TRT FP16 | TRT INT8 |  Device   |
 | -------------- | ---------- | ----- | -------------- | -------- | -------- | -------- | --- |
-| ResNet50-IBN-a |  3x224x224 |   32  |                | 72.71/74.81 | 24.24/25.73 |          |  Tesla T4 |
-|                |            |       |                |          |          |          |     |
+| ResNet50-IBN-a |  3x224x224 |   32  | 103.44/106.65  | 72.71/74.81 | 24.24/25.73 | 17.83/19.50 |  Tesla T4 |
 
 # Build 
  **Dependencies**
@@ -40,10 +38,10 @@ TensorRT 官方目前支持Layer，见[链接](https://docs.nvidia.com/deeplearn
  * glog, gflags
  * OpenCV>=3.4.2(load image)
 
-**Build**
+**Compile**
   
 ``` shell
-git clone https://github.com/OMG59E/caffe2trt.git
+git clone https://github.com/chinasvt/caffe2trt.git
 cd caffe2trt
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=RELEASE ..
