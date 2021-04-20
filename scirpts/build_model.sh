@@ -13,9 +13,9 @@ width=224
 input='data'
 
 # output node name
-output='582'
+output='583'
 
-dataType=fp16
+dataType=int8
 
 # model
 deploy=../models/resnet50_ibn_a-d9d0bb7b_opt.prototxt
@@ -28,7 +28,7 @@ fi
 
 # only for int8
 calibBatchSize=32
-calibMaxBatches=1000
+calibMaxBatches=100
 calibFirstBatch=10
 dataDir=../data/imagenet/batches
 
