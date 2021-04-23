@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 2.8.7)
 project(caffe2trt C CXX)
 
 set(TRT_ROOT_DIR "/usr/local/TensorRT")
-set(OPENCV_DIR "/usr/local")
 
 # turn on C++11
 if(CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
@@ -32,18 +31,15 @@ add_subdirectory(tools)
 
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${TRT_ROOT_DIR}/include)
-include_directories(${OPENCV_DIR}/include)
 include_directories(include)
 include_directories(include/trt/parsers/caffe/proto)
 include_directories(third_party/onnx)
 
 link_directories(${CUDA_TOOLKIT_ROOT_DIR}/lib64)
 link_directories(${TRT_ROOT_DIR}/lib)
-link_directories(${OPENCV_DIR}/lib)
 
-list(APPEND LINKER_LIBS opencv_core opencv_imgproc opencv_imgcodecs opencv_highgui opencv_videoio)
 list(APPEND LINKER_LIBS nvinfer)
-list(APPEND LINKER_LIBS cudnn cublas curand nvrtc nvjpeg nppig nppc)
+list(APPEND LINKER_LIBS cudnn cublas nvrtc nvjpeg)
 list(APPEND LINKER_LIBS ${PROTOBUF_LIBRARIES})
 list(APPEND LINKER_LIBS "/usr/local/lib/libglog.a")
 list(APPEND LINKER_LIBS "/usr/local/lib/libgflags.a")

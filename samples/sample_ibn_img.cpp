@@ -11,7 +11,6 @@
 #include <fstream>
 #include <sstream>
 #include <numeric>
-#include <opencv2/opencv.hpp>
 
 using namespace alg::trt;
 using namespace alg;
@@ -38,11 +37,11 @@ int main(int argc, char **argv) {
     FLAGS_logtostderr = true;
     google::InitGoogleLogging(argv[0]);
 
-    const std::string img_dir = "../data/imagenet/";
+    const std::string img_dir = argv[1];
     const std::string filepath = img_dir + "val_list.txt";
-    const std::string engineFile = "../engines/resnet50_ibn_a-d9d0bb7b_opt_fp16.engine";
-    const int device_id = 0;
-    const int batch_size = 32;
+    const std::string engineFile = argv[2];
+    const int device_id = std::stoi(argv[3]);
+    const int batch_size = std::stoi(argv[4]);
 
     NetParameter param;
     param.input_shape = DimsNCHW{batch_size, 3, 224, 224};

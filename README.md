@@ -36,8 +36,7 @@ TensorRT 官方目前支持Layer，见[链接](https://docs.nvidia.com/deeplearn
     * cuda-11.x + cuDNN-8.1
     * cuda-10.2 + cuDNN-8.1
  * TensorRT>=5.1.5.0
- * glog, gflags
- * OpenCV>=3.4.2(load image)
+ * glog, gflags, protobuf
 
 **Compile**
   
