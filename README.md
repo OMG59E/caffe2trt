@@ -67,10 +67,30 @@ git clone https://github.com/chinasvt/caffe2trt.git
 cd caffe2trt
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=RELEASE ..
+make
 ```
 
 **Usage**
 
+**数据**
+
+测试数据链接: https://pan.baidu.com/s/1tvaGayhYprKroxCXrcsnyw 提取码: yspr 
+
+数据下载完解压后，将数据目录链接到项目的data目录下，如下：
+``` shell 
+ln -s /your_download_path/ ./data/imagenet 
+```
+**编译模型**
+
+***INT8量化需要的校准数据，由原始模型仓库[https://gitee.com/SMVD/IBN_PyTorch.git](https://gitee.com/SMVD/IBN_PyTorch.git) 中的 eval.py生成***
+
+运行命令
+``` shell
+cd build
+sh ../scripts/build_model.sh
+```
+
+参数说明
 ``` shell
 ./caffe2trt  \
 --model=${model} \     #设置caffemodel文件路径
@@ -82,5 +102,34 @@ cmake -DCMAKE_BUILD_TYPE=RELEASE ..
 --dataType=${dataType} \ #设置转换精度，支持FP32、FP16、INT8
 --workspace=$4 \      #分配转换时的显存大小
 --device=$3          #设置GPU Id 
+```
+
+**性能测试**
+
+``` shell
+# 测试模型时延和吞吐量
+cd build
+# 第一个参数-测试数据
+# 第二个参数-模型路径
+# 第三个参数-设置显卡id
+# 第四个参数-设置推理Batchsize
+# 第五个参数-设置迭代次数
+./sample_inference ../data/person_0003.jpg ../engines/resnet50_ibn_a-d9d0bb7b_opt_b256_fp16.engine 0 64 1000
+
+## 由于原始模型预处理是通过Pillow实现，预处理差异较大
+## 测试模型正确性，无预处理，即预处理好的数据
+# 第一个参数-测试数据
+# 第二个参数-模型路径
+# 第三个参数-设置显卡id
+# 第四个参数-设置推理Batchsize，必须=32
+./sample_ibn_raw ../data/imagenet ../engines/resnet50_ibn_a-d9d0bb7b_opt_b256_fp16.engine 0 32
+
+## 测试模型正确性，有预处理，通过gpu实现的预处理方法
+# 第一个参数-测试数据
+# 第二个参数-模型路径
+# 第三个参数-设置显卡id
+# 第四个参数-设置推理Batchsize
+./sample_ibn_raw ../data/imagenet ../engines/resnet50_ibn_a-d9d0bb7b_opt_b256_fp16.engine 0 32
+
 ```
 
