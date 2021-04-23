@@ -13,6 +13,7 @@ using namespace nvinfer1;
 using namespace nvinfer1::plugin;
 
 #include "trt/plugin/slicePlugin/slicePlugin.h"
+#include "trt/plugin/instanceNormalizationPlugin/instanceNormalizationPlugin.h"
 
 namespace nvinfer1 {
     namespace plugin {
@@ -60,6 +61,7 @@ namespace nvinfer1 {
 extern "C" {
     bool initLibNvInferPlugins(void* logger, const char* libNamespace) {
         initializePlugin<nvinfer1::plugin::SlicePluginCreator>(logger, libNamespace);
+        //initializePlugin<nvinfer1::plugin::InstanceNormalizationPluginCreator>(logger, libNamespace);
         return true;
     }
 } // extern "C"

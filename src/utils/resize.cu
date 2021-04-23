@@ -118,5 +118,41 @@ namespace alg {
             CUDACHECK(cudaDeviceSynchronize());
             CUDACHECK(cudaGetLastError());
         }
+
+        template<typename Dtype>
+        __global__ void INTER_LINEAR_Kernel(const int nbThreads,
+                                            const unsigned char *input, int channels, int iHeight, int iWidth,
+                                            Dtype *output, int oHeight, int oWidth) {
+            CUDA_KERNEL_LOOP(idx, nbThreads) {
+                int dx = idx / channels % oWidth;
+                int dy = idx / channels / oWidth;
+                int dc = idx % channels;
+
+                float d0 = calcScaleVal(input, channels, iHeight, iWidth, oHeight, oWidth, dx, dy, dc);
+
+                output[(dy * oWidth + dx) * channels + dc] = d0;
+            }
+        }
+
+        void resize(const unsigned char *input, int channels, int iHeight, int iWidth,
+                    unsigned char *output, int oHeight, int oWidth, int mode) {
+
+            const int nbThreads = channels * oHeight * oWidth;
+            if (mode == PIL_INTER_LINEAR) {
+                INTER_LINEAR_Kernel << < CUDA_GET_BLOCKS(nbThreads), CUDA_NUM_THREADS >> > (nbThreads,
+                        input, channels, iHeight, iWidth,
+                        output, oHeight, oWidth);
+            } else {
+                LOG(FATAL) << "No support mode: " << mode;
+            }
+            CUDACHECK(cudaDeviceSynchronize());
+            CUDACHECK(cudaGetLastError());
+        }
+
+        void resize(const alg::Mat &src, alg::Mat &dst, alg::Size size, int mode) {
+            LOG_ASSERT(src.ptr() && dst.ptr());
+            LOG_ASSERT((dst.height = size.h) && (dst.width = size.w));
+            resize(src.ptr(), src.c(), src.h(), src.w(), dst.ptr(), size.h, size.w, mode);
+        }
     }
 }

@@ -87,6 +87,9 @@ namespace nvcaffeparser1 {
         std::vector<nvinfer1::PluginField> parseSliceParam(const trtcaffe::LayerParameter& msg,
                 CaffeWeightFactory& weightFactory, BlobNameToTensor& tensors);
 
+        std::vector<nvinfer1::PluginField> parseInstanceNormParam(const trtcaffe::LayerParameter &msg,
+                CaffeWeightFactory &weightFactory, BlobNameToTensor &tensors);
+
         template <typename T>
         T* allocMemory(int size = 1) {
             T* tmpMem = static_cast<T*>(malloc(sizeof(T) * size));

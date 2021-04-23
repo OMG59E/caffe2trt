@@ -26,6 +26,32 @@
 using namespace nvinfer1;
 
 namespace alg {
+    struct Size {
+        int w{0};
+        int h{0};
+
+        Size() {
+            w = 0;
+            h = 0;
+        }
+
+        Size(int width, int height) {
+            w = width;
+            h = height;
+        }
+    };
+
+    struct Box {
+        int x1{0};
+        int y1{0};
+        int x2{0};
+        int y2{0};
+
+        int w() const { return x2 - x1 + 1; }
+
+        int h() const { return y2 - y1 + 1; }
+    };
+
     struct Mat {
         uint8_t* data{nullptr};
         int channel{0};
@@ -41,6 +67,17 @@ namespace alg {
         const int size() const { return channel*height*width; }
 
         uint8_t* ptr() const { return data; }
+
+        void create(int max_size, bool use_gpu = true) {
+            own = true;
+            gpu = use_gpu;
+
+            LOG_ASSERT(!data);
+            if (use_gpu)
+                CUDACHECK(cudaMalloc((void **) &data, max_size * sizeof(uint8_t)));
+            else
+                CUDACHECK(cudaMallocHost((void **) &data, max_size * sizeof(uint8_t)));
+        }
 
         void create(int c, int h, int w, bool use_gpu=true) {
             channel = c;

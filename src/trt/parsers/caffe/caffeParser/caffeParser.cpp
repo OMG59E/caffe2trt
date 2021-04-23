@@ -43,6 +43,28 @@ CaffeParser::~CaffeParser() {
     delete mBlobNameToTensor;
 }
 
+std::vector<nvinfer1::PluginField> CaffeParser::parseInstanceNormParam(
+        const trtcaffe::LayerParameter &msg, nvcaffeparser1::CaffeWeightFactory &weightFactory, nvcaffeparser1::BlobNameToTensor &tensors) {
+    std::vector<nvinfer1::PluginField> f;
+    const trtcaffe::InstanceNormParameter &p = msg.instance_normalize_param(); //instance_noramalize_param
+    auto *epsilon = allocMemory<float>();
+    *epsilon = p.eps();
+    f.emplace_back("epsilon", epsilon, PluginFieldType::kFLOAT32, 1);
+
+    std::vector<Weights> weights;
+    weights = weightFactory.getAllWeights(msg.name());
+
+    Weights scales = weights[0];
+    f.emplace_back("scales", scales.values, PluginFieldType::kFLOAT32, scales.count);
+
+    Weights bias = weights[1];
+    f.emplace_back("bias", bias.values, PluginFieldType::kFLOAT32, bias.count);
+    DLOG(INFO) << "InstanceNorm Weights size is: " << weights.size() << " bias size is: " << bias.count
+               << " scales size is: " << scales.count;
+    return f;
+
+}
+
 std::vector<nvinfer1::PluginField> CaffeParser::parseSliceParam(
         const trtcaffe::LayerParameter& msg, CaffeWeightFactory& /*weightFactory*/, BlobNameToTensor& tensors) {
     std::vector<nvinfer1::PluginField> f;
@@ -281,6 +303,10 @@ const IBlobNameToTensor* CaffeParser::parse(INetworkDefinition& network, DataTyp
                 pluginName = "Slice_TRT";
                 f = parseSliceParam(layerMsg, weights, *mBlobNameToTensor);
             }
+            // else if (layerMsg.type() == "InstanceNorm") {
+            //     pluginName = "InstanceNormalization_TRT";
+            //     f = parseInstanceNormParam(layerMsg,weights, *mBlobNameToTensor);
+            // }
 
             if (mPluginRegistry.find(pluginName) != mPluginRegistry.end()) {
                 // Set fc

@@ -4,7 +4,7 @@
 # export LD_LIBRARY_PATH=${TRT_PATH}/lib:$LD_LIBRARY_PATH
 
 # input shape
-batch=32
+batch=64
 channels=3
 height=224
 width=224
@@ -15,7 +15,7 @@ input='data'
 # output node name
 output='583'
 
-dataType=int8
+dataType=fp32
 
 # model
 deploy=../models/resnet50_ibn_a-d9d0bb7b_opt.prototxt

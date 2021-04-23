@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include "error_check.h"
 
 // Enumerator for status
 typedef enum {

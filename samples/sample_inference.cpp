@@ -3,10 +3,10 @@
 //
 
 #include "trt/net_operator.h"
-#include <opencv2/opencv.hpp>
 #include <iostream>
 #include <sstream>
 #include <chrono>
+#include <utils/imdecode.h>
 
 using namespace alg::trt;
 using namespace alg;
@@ -46,15 +46,16 @@ int main(int argc, char **argv) {
     vNvImages.clear();
     vNvImages.resize(batch_size);
 
-    cv::Mat img = cv::imread(imgFile);
-    if (img.empty()) {
+    alg::nv::ImageDecoder dec;
+    alg::Mat img;
+    if (dec.Decode(imgFile, img) != 0) {
         LOG(ERROR) << "load img failed -> " << imgFile;
         return -1;
     }
 
     for (auto &nv_image : vNvImages) {
-        nv_image.create(img.channels(), img.rows, img.cols);
-        CUDACHECK(cudaMemcpy(nv_image.ptr(), img.data, nv_image.size(), cudaMemcpyHostToDevice));
+        nv_image.create(img.c(), img.h(), img.w());
+        CUDACHECK(cudaMemcpy(nv_image.ptr(), img.data, img.size(), cudaMemcpyDeviceToDevice));
     }
 
     std::vector<Tensor> vOutputTensors;

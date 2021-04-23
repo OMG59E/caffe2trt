@@ -32,6 +32,8 @@ namespace alg {
 
         void resizeBGRAToBGROp(const unsigned char* input, int iHeight, int iWidth,
                                unsigned char* output, int oHeight, int oWidth, int mode=PIL_INTER_LINEAR);
+
+        void resize(const alg::Mat& src, alg::Mat& dst, alg::Size size, int mode = PIL_INTER_LINEAR);
     }
 }
 

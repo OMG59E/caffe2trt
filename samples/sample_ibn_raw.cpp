@@ -2,7 +2,6 @@
 // Created by xingwg on 21-4-20.
 //
 #include "trt/net_operator.h"
-#include <opencv2/opencv.hpp>
 #include <algorithm>
 #include <iostream>
 #include <fstream>

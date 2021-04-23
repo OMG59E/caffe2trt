@@ -3,12 +3,15 @@
 //
 
 #include "trt/net_operator.h"
-#include <opencv2/opencv.hpp>
+#include "utils/imdecode.h"
+#include "utils/resize.h"
+#include "utils/crop.h"
 #include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <numeric>
+#include <opencv2/opencv.hpp>
 
 using namespace alg::trt;
 using namespace alg;
@@ -37,7 +40,7 @@ int main(int argc, char **argv) {
 
     const std::string img_dir = "../data/imagenet/";
     const std::string filepath = img_dir + "val_list.txt";
-    const std::string engineFile = "../engines/resnet50_ibn_a-d9d0bb7b_opt.engine";
+    const std::string engineFile = "../engines/resnet50_ibn_a-d9d0bb7b_opt_fp16.engine";
     const int device_id = 0;
     const int batch_size = 32;
 
@@ -64,6 +67,14 @@ int main(int argc, char **argv) {
     for (auto &vImage : vNvImages)
         vImage.create(shape.c(), shape.h(), shape.w());
 
+    alg::Box box;
+    int x = int((256 - shape.w() + 1) * 0.5f);
+    int y = int((256 - shape.h() + 1) * 0.5f);
+    box.x1 = x;
+    box.y1 = y;
+    box.x2 = x + 224 - 1;
+    box.y2 = y + 224 - 1;
+
     //
     std::ifstream in(filepath);
     if (!in.is_open()) {
@@ -72,7 +83,12 @@ int main(int argc, char **argv) {
     }
     std::string line, img_path, gt_idx;
     std::stringstream ss;
-    cv::Mat img, img_resize, img_crop;
+
+    alg::Mat img, img_resize, img_crop;
+    img.create(MAX_FRAME_SIZE);
+    img_resize.create(3, 256, 256);
+    img_crop.create(3, 224, 224);
+    alg::nv::ImageDecoder dec;
     int count = 0;
     int idx = 0;
     int top1 = 0, top5 = 0;
@@ -80,17 +96,14 @@ int main(int argc, char **argv) {
         ss.clear();
         ss << line;
         ss >> img_path >> gt_idx;
-        img = cv::imread(img_dir + img_path);
-        if (img.empty()) {
+        if (dec.Decode(img_dir + img_path, img) != 0) {
             LOG(WARNING) << "load img failed -> " << img_dir + img_path;
             continue;
         }
-        cv::resize(img, img_resize, cv::Size(256, 256));
-        int x = int((256 - shape.w() + 1) * 0.5f);
-        int y = int((256 - shape.h() + 1) * 0.5f);
-        img_crop = img_resize(cv::Rect(x, y, shape.w(), shape.h())).clone();
+        alg::nv::resize(img, img_resize, alg::Size(256, 256));
+        alg::nv::crop(img_resize, img_crop, box);
         idx = count % batch_size;
-        CUDACHECK(cudaMemcpy(vNvImages[idx].ptr(), img_crop.data, vNvImages[idx].size(), cudaMemcpyHostToDevice));
+        CUDACHECK(cudaMemcpy(vNvImages[idx].ptr(), img_crop.data, vNvImages[idx].size(), cudaMemcpyDeviceToDevice));
         if (idx == 0 && count != 0) {
             vOutputTensors.clear();
             if (!engine.inference(vNvImages, vOutputTensors)) {
@@ -106,7 +119,7 @@ int main(int argc, char **argv) {
                 if (accuracy(v, std::stoi(gt_idx), 5)) top5++;
             }
         }
-        LOG(INFO) << "count: " << count << " idx: " << idx;
+        LOG(INFO) << "Process: " << count;
         count++;
     }
 
@@ -126,6 +139,12 @@ int main(int argc, char **argv) {
             if (accuracy(v, std::stoi(gt_idx), 5)) top5++;
         }
     }
+
+    for (auto &nv_image : vNvImages)
+        nv_image.free();
+    img_resize.free();
+    img_crop.free();
+
     LOG(INFO) << "top1/top5 " << float(top1) / count << "/" << float(top5) / count;
     return 0;
 }
