@@ -37,6 +37,11 @@ int main(int argc, char **argv) {
     FLAGS_logtostderr = true;
     google::InitGoogleLogging(argv[0]);
 
+    if (argc != 5) {
+        LOG(ERROR) << "input param error, argc must be equal 5";
+        return -1;
+    }
+
     const std::string img_dir = argv[1];
     const std::string filepath = img_dir + "val_list.txt";
     const std::string engineFile = argv[2];
