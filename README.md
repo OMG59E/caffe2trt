@@ -41,6 +41,28 @@ TensorRT 官方目前支持Layer，见[链接](https://docs.nvidia.com/deeplearn
 **Compile**
   
 ``` shell
+# gflags
+git clone https://github.com/gflags/gflags.git
+cd gflags
+cmake -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_SHARED_LIBS=OFF -DGFLAGS_NAMESPACE=google -DCMAKE_CXX_FLAGS=-fPIC ..
+make -j
+
+# glog
+git clone https://github.com/google/glog.git
+cd glog
+sudo apt install libtool automake
+./autogen.sh 
+./configure CPPFLAGS="-I/usr/local/include -fPIC" LDFLAGS="-L/usr/local/lib" --disable-shared
+make -j
+
+# protobuf
+git clone --recursive https://github.com/protocolbuffers/protobuf.git
+cd protobuf
+./autogen.sh 
+./configure CXXFLAGS="-fPIC" --prefix=/usr/local --disable-shared
+make -j
+
+# caffe2trt
 git clone https://github.com/chinasvt/caffe2trt.git
 cd caffe2trt
 mkdir build && cd build
