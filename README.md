@@ -129,7 +129,7 @@ cd build
 # 第二个参数-模型路径
 # 第三个参数-设置显卡id
 # 第四个参数-设置推理Batchsize
-./sample_ibn_raw ../data/imagenet ../engines/resnet50_ibn_a-d9d0bb7b_opt_b256_fp16.engine 0 32
+./sample_ibn_img ../data/imagenet ../engines/resnet50_ibn_a-d9d0bb7b_opt_b256_fp16.engine 0 32
 
 ```
 
