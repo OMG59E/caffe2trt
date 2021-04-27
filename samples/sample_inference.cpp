@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
 
     alg::nv::ImageDecoder dec;
     alg::Mat img;
+    img.create(MAX_FRAME_SIZE);
     if (dec.Decode(imgFile, img) != 0) {
         LOG(ERROR) << "load img failed -> " << imgFile;
         return -1;
