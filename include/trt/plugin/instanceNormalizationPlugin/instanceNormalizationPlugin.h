@@ -25,13 +25,19 @@
 
 namespace nvinfer1 {
     namespace plugin {
-        class InstanceNormalizationPlugin final : public nvinfer1::IPluginV2Ext {
+        class InstanceNormalizationPlugin : public IPluginV2IOExt {
 
         public:
             //InstanceNormalizationPlugin(float epsilon, nvinfer1::Weights const &scale, nvinfer1::Weights const &bias);
 
-            InstanceNormalizationPlugin(float epsilon, DataType dataType,
-                    std::vector<float> const &h_scale, std::vector<float> const &h_bias);
+            InstanceNormalizationPlugin(float epsilon, const DimsCHW &input_shape,
+                                        const DataType &dataType, std::vector<float> const &h_scale,
+                                        std::vector<float> const &h_bias);
+
+            InstanceNormalizationPlugin(float epsilon,
+                                        const DataType &dataType,
+                                        std::vector<float> const &h_scale,
+                                        std::vector<float> const &h_bias);
 
             InstanceNormalizationPlugin(void const *serialData, size_t serialLength);
 
@@ -63,7 +69,7 @@ namespace nvinfer1 {
 
             void destroy() override;
 
-            IPluginV2Ext *clone() const override;
+            IPluginV2IOExt *clone() const override;
 
             void setPluginNamespace(const char *pluginNamespace) override;
 
@@ -81,27 +87,19 @@ namespace nvinfer1 {
 
             bool canBroadcastInputAcrossBatch(int inputIndex) const override;
 
-            // void configurePlugin(const PluginTensorDesc *in, int32_t nbInput,
-            //                      const PluginTensorDesc *out, int32_t nbOutput) override;
-            // bool supportsFormatCombination(int32_t pos, const PluginTensorDesc *inOut,
-            //                                int32_t nbInputs, int32_t nbOutputs) const override;
+            void configurePlugin(const PluginTensorDesc *in, int32_t nbInput,
+                                  const PluginTensorDesc *out, int32_t nbOutput) override;
 
-            bool supportsFormat(DataType type, PluginFormat format) const override;
-
-            void configurePlugin(const Dims *inputDims, int nbInputs, const Dims *outputDims,
-                    int nbOutputs, const DataType *inputTypes, const DataType *outputTypes,
-                    const bool *inputIsBroadcast, const bool *outputIsBroadcast,
-                    PluginFormat floatFormat, int maxBatchSize) override;
+            bool supportsFormatCombination(int32_t pos, const PluginTensorDesc *inOut,
+                                            int32_t nbInputs, int32_t nbOutputs) const override;
 
         private:
             float _epsilon{0};
             DimsCHW _shape;
-            int _maxBatchSize{0};
             std::vector<float> _h_scale;
             std::vector<float> _h_bias;
             float *_d_scale{nullptr};
             float *_d_bias{nullptr};
-            bool _initialized;
             nvinfer1::DataType _data_type;
             cudnnHandle_t _cudnn_handle{nullptr};
             cudnnTensorDescriptor_t _x_desc{nullptr}, _y_desc{nullptr}, _b_desc{nullptr};
@@ -121,11 +119,11 @@ namespace nvinfer1 {
 
             const PluginFieldCollection *getFieldNames() override;
 
-            IPluginV2Ext *createPlugin(const char *name,
-                    const nvinfer1::PluginFieldCollection *fc) override;
+            IPluginV2IOExt *createPlugin(const char *name,
+                                         const nvinfer1::PluginFieldCollection *fc) override;
 
-            IPluginV2Ext *deserializePlugin(const char *name,
-                    const void *serialData, size_t serialLength) override;
+            IPluginV2IOExt *deserializePlugin(const char *name,
+                                              const void *serialData, size_t serialLength) override;
 
         private:
             static PluginFieldCollection mFC;

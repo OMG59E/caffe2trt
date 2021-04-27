@@ -93,32 +93,34 @@ std::vector<PluginField> InstanceNormalizationPluginCreator::mPluginAttributes;
 //    }
 //}
 
-InstanceNormalizationPlugin::InstanceNormalizationPlugin(float epsilon,
-        DataType dataType, std::vector<float> const &h_scale, std::vector<float> const &h_bias)
+InstanceNormalizationPlugin::InstanceNormalizationPlugin(float epsilon, const DimsCHW& input_shape,
+        const DataType& dataType, std::vector<float> const &h_scale, std::vector<float> const &h_bias)
         : _epsilon(epsilon)
-        , _initialized(false) {
+        , _data_type(dataType)
+        , _shape(input_shape) {
     LOG_ASSERT(h_scale.size() == h_bias.size());
-    _data_type = dataType;
+    _h_scale.assign(h_scale.begin(), h_scale.end());
+    _h_bias.assign(h_bias.begin(), h_bias.end());
+}
+
+InstanceNormalizationPlugin::InstanceNormalizationPlugin(float epsilon, const DataType &dataType,
+        std::vector<float> const &h_scale, std::vector<float> const &h_bias)
+        : _epsilon(epsilon)
+        , _data_type(dataType) {
+    LOG_ASSERT(h_scale.size() == h_bias.size());
     _h_scale.assign(h_scale.begin(), h_scale.end());
     _h_bias.assign(h_bias.begin(), h_bias.end());
 }
 
 InstanceNormalizationPlugin::InstanceNormalizationPlugin(
-        void const *data, size_t length)
-        : _initialized(false) {
+        void const *data, size_t length) {
     const char *d = reinterpret_cast<const char *>(data);
     const char *a = d;
 
     _epsilon = read<float>(d);
-    _maxBatchSize = read<int>(d);
+    //_maxBatchSize = read<int>(d);
     _shape = read<DimsCHW>(d);
     _data_type = read<DataType>(d);
-    if (_data_type == DataType::kFLOAT)
-        std::cout << "DataType::kFLOAT" << std::endl;
-    else if (_data_type == DataType::kHALF)
-        std::cout << "DataType::kHALF" << std::endl;
-    else
-        std::cout << "DataType::kINT8" << std::endl;
     _h_scale.clear();
     auto scale_size = read<size_t>(d);
     for (int i=0; i<scale_size; ++i)
@@ -128,15 +130,10 @@ InstanceNormalizationPlugin::InstanceNormalizationPlugin(
     for (int i = 0; i < bias_size; ++i)
         _h_bias.push_back(read < float > (d));
     LOG_ASSERT(d == a + length);
-
-    initialize();
 }
 
-InstanceNormalizationPlugin::~InstanceNormalizationPlugin() {
-    terminate();
-}
+InstanceNormalizationPlugin::~InstanceNormalizationPlugin() {}
 
-// InstanceNormalizationPlugin returns one output.
 int InstanceNormalizationPlugin::getNbOutputs() const {
     return 1;
 }
@@ -148,53 +145,37 @@ Dims InstanceNormalizationPlugin::getOutputDimensions(
 }
 
 int InstanceNormalizationPlugin::initialize() {
-    _initialized = true;
-    // CUDNNCHECK(cudnnCreate(&_cudnn_handle));
-    // CUDNNCHECK(cudnnCreateTensorDescriptor(&_b_desc));
-    // CUDNNCHECK(cudnnCreateTensorDescriptor(&_x_desc));
-    // CUDNNCHECK(cudnnCreateTensorDescriptor(&_y_desc));
-    size_t nchan_bytes = _shape.c() * sizeof(float);
-    CUDACHECK(cudaMalloc((void **) &_d_scale, _maxBatchSize * nchan_bytes));
-    CUDACHECK(cudaMalloc((void **) &_d_bias, _maxBatchSize * nchan_bytes));
-    // Note: We repeat the data for each batch entry so that we can do the full
-    //       computation in a single CUDNN call in enqueue().
-    for (int i = 0; i < _maxBatchSize; ++i) {
-        CUDACHECK(cudaMemcpy(_d_scale + i * _shape.c(), _h_scale.data(), nchan_bytes, cudaMemcpyHostToDevice));
-        CUDACHECK(cudaMemcpy(_d_bias + i * _shape.c(), _h_bias.data(), nchan_bytes, cudaMemcpyHostToDevice));
-    }
     return 0;
 }
 
-void InstanceNormalizationPlugin::terminate() {
-    if (!_initialized)
-        return;
-    CUDA_FREE(_d_bias);
-    CUDA_FREE(_d_scale);
-    // CUDNNCHECK(cudnnDestroyTensorDescriptor(_y_desc));
-    // CUDNNCHECK(cudnnDestroyTensorDescriptor(_x_desc));
-    // CUDNNCHECK(cudnnDestroyTensorDescriptor(_b_desc));
-    // CUDNNCHECK(cudnnDestroy(_cudnn_handle));
-    _initialized = false;
-}
+void InstanceNormalizationPlugin::terminate() {}
 
 size_t InstanceNormalizationPlugin::getWorkspaceSize(int maxBatchSize) const {
-    return 0;
+    return 2* maxBatchSize*_shape.c() * sizeof(float);
 }
 
 int InstanceNormalizationPlugin::enqueue(int batchSize,
         const void *const *inputs, void **outputs, void *workspace, cudaStream_t stream) {
 
-    int n = batchSize;
-    int c = _shape.c();
-    int h = _shape.h();
-    int w = _shape.w();
+    const int n = batchSize;
+    const int c = _shape.c();
+    const int h = _shape.h();
+    const int w = _shape.w();
 
+    size_t nchan_bytes = c * sizeof(float);
+    _d_scale = reinterpret_cast<float*>(workspace);
+    _d_bias = _d_scale + batchSize * nchan_bytes;
+    for (int i = 0; i < batchSize; ++i) {
+        CUDACHECK(cudaMemcpy(_d_scale + i * c, _h_scale.data(), nchan_bytes, cudaMemcpyHostToDevice));
+        CUDACHECK(cudaMemcpy(_d_bias + i * c, _h_bias.data(), nchan_bytes, cudaMemcpyHostToDevice));
+    }
+
+    CUDNNCHECK(cudnnSetTensor4dDescriptor(_b_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, 1, n * c, 1, 1));
     cudnnDataType_t cudnn_dtype;
     CUDNNCHECK(convert_trt2cudnn_dtype(_data_type, &cudnn_dtype));
-    LOG_ASSERT(_b_desc && _x_desc && _y_desc);
-    CUDNNCHECK(cudnnSetTensor4dDescriptor(_b_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, 1, n * c, 1, 1));
     CUDNNCHECK(cudnnSetTensor4dDescriptor(_x_desc, CUDNN_TENSOR_NCHW, cudnn_dtype, 1, n * c, h, w));
     CUDNNCHECK(cudnnSetTensor4dDescriptor(_y_desc, CUDNN_TENSOR_NCHW, cudnn_dtype, 1, n * c, h, w));
+
     float alpha = 1;
     float beta = 0;
     void const *x_ptr = inputs[0];
@@ -202,24 +183,22 @@ int InstanceNormalizationPlugin::enqueue(int batchSize,
     CUDNNCHECK(cudnnSetStream(_cudnn_handle, stream));
     // Note: Use of CUDNN_BATCHNORM_SPATIAL_PERSISTENT can cause numerical
     //       overflows (NaNs) for fp32 data in some circumstances. The lower-
-    //       performance CUDNN_BATCHNORM_SPATIAL should be used if this is not
-    //       acceptable.
+    //       performance CUDNN_BATCHNORM_SPATIAL should be used if this is not acceptable.
     CUDNNCHECK(cudnnBatchNormalizationForwardTraining(_cudnn_handle, CUDNN_BATCHNORM_SPATIAL_PERSISTENT, &alpha, &beta,
                                                       _x_desc, x_ptr, _y_desc, y_ptr, _b_desc, _d_scale, _d_bias, 1.,
                                                       nullptr, nullptr, _epsilon, nullptr, nullptr));
     return 0;
-
 }
 
 size_t InstanceNormalizationPlugin::getSerializationSize() const {
-     return sizeof(float) + sizeof(int) + sizeof(DimsCHW) + sizeof(DataType)
+     return sizeof(float) + sizeof(DimsCHW) + sizeof(DataType)
         + 2*sizeof(size_t) + (_h_bias.size() + _h_scale.size()) * sizeof(float);
 }
 
 void InstanceNormalizationPlugin::serialize(void *buffer) const {
     char *d = static_cast<char*>(buffer), *a = d;
     write(d, _epsilon);
-    write(d, _maxBatchSize);
+    //write(d, _maxBatchSize);
     write(d, _shape);
     write(d, _data_type);
     write(d, _h_scale.size());
@@ -238,21 +217,23 @@ nvinfer1::DataType InstanceNormalizationPlugin::getOutputDataType(
     return inputTypes[0];
 }
 
-bool InstanceNormalizationPlugin::supportsFormat(DataType type, PluginFormat format) const {
-    return (type == DataType::kFLOAT || type == DataType::kHALF) && format == PluginFormat::kNCHW;
+void InstanceNormalizationPlugin::configurePlugin(const PluginTensorDesc *in, int32_t nbInput,
+                            const PluginTensorDesc *out, int32_t nbOutput) {
+    LOG_ASSERT(nbInput == 1 && nbOutput == 1);
+    LOG_ASSERT(in[0].dims.nbDims == 3 && out[0].dims.nbDims == 3);
+    LOG_ASSERT(in[0].type == out[0].type);
+    LOG_ASSERT(in[0].format == TensorFormat::kLINEAR&& out[0].format == TensorFormat::kLINEAR);
+    _shape.d[0] = in[0].dims.d[0];
+    _shape.d[1] = in[0].dims.d[1];
+    _shape.d[2] = in[0].dims.d[2];
+    _data_type = in[0].type;
 }
 
-void InstanceNormalizationPlugin::configurePlugin(const Dims *inputDims, int nbInputs, const Dims *outputDims, int nbOutputs,
-                          const DataType *inputTypes, const DataType *outputTypes, const bool *inputIsBroadcast,
-                          const bool *outputIsBroadcast, PluginFormat floatFormat, int maxBatchSize) {
-    LOG_ASSERT(nbInputs == 1 && nbOutputs == 1);
-    LOG_ASSERT(inputDims[0].nbDims == 3 && outputDims[0].nbDims == 3);
-    LOG_ASSERT(inputTypes[0] == outputTypes[0] && floatFormat == PluginFormat::kNCHW);
-    _shape.c() = inputDims[0].d[0];
-    _shape.h() = inputDims[0].d[1];
-    _shape.w() = inputDims[0].d[2];
-    _maxBatchSize = maxBatchSize;
-    _data_type = inputTypes[0];
+bool InstanceNormalizationPlugin::supportsFormatCombination(int32_t pos, const PluginTensorDesc *inOut,
+                                      int32_t nbInputs, int32_t nbOutputs) const {
+    LOG_ASSERT(nbInputs == 1 && nbOutputs == 1 && pos < nbInputs + nbOutputs);
+    return (inOut[pos].type == DataType::kFLOAT || inOut[pos].type == DataType::kHALF)
+    && (inOut[pos].type == inOut[0].type) && (inOut[pos].format == TensorFormat::kLINEAR);
 }
 
 bool InstanceNormalizationPlugin::canBroadcastInputAcrossBatch(int inputIndex) const {
@@ -276,8 +257,8 @@ void InstanceNormalizationPlugin::destroy() {
     delete this;
 }
 
-IPluginV2Ext *InstanceNormalizationPlugin::clone() const {
-    auto plugin = new InstanceNormalizationPlugin{_epsilon, _data_type, _h_scale, _h_bias};
+IPluginV2IOExt *InstanceNormalizationPlugin::clone() const {
+    auto plugin = new InstanceNormalizationPlugin{_epsilon, _shape, _data_type, _h_scale, _h_bias};
     plugin->setPluginNamespace(mPluginNamespace);
     return plugin;
 }
@@ -295,16 +276,16 @@ const char *InstanceNormalizationPlugin::getPluginNamespace() const {
 void InstanceNormalizationPlugin::attachToContext(cudnnContext *cudnnContext,
         cublasContext *cublasContext, IGpuAllocator *gpuAllocator) {
     _cudnn_handle = cudnnContext;
-    cudnnCreateTensorDescriptor(&_b_desc);
-    cudnnCreateTensorDescriptor(&_x_desc);
-    cudnnCreateTensorDescriptor(&_y_desc);
+    CUDNNCHECK(cudnnCreateTensorDescriptor(&_b_desc));
+    CUDNNCHECK(cudnnCreateTensorDescriptor(&_x_desc));
+    CUDNNCHECK(cudnnCreateTensorDescriptor(&_y_desc));
 }
 
 // Detach the plugin object from its execution context.
 void InstanceNormalizationPlugin::detachFromContext() {
-    cudnnDestroyTensorDescriptor(_y_desc);
-    cudnnDestroyTensorDescriptor(_x_desc);
-    cudnnDestroyTensorDescriptor(_b_desc);
+    CUDNNCHECK(cudnnDestroyTensorDescriptor(_y_desc));
+    CUDNNCHECK(cudnnDestroyTensorDescriptor(_x_desc));
+    CUDNNCHECK(cudnnDestroyTensorDescriptor(_b_desc));
 }
 
 // InstanceNormalizationPluginCreator methods
@@ -329,7 +310,7 @@ const PluginFieldCollection *InstanceNormalizationPluginCreator::getFieldNames()
     return &mFC;
 }
 
-IPluginV2Ext *InstanceNormalizationPluginCreator::createPlugin(const char *name,
+IPluginV2IOExt *InstanceNormalizationPluginCreator::createPlugin(const char *name,
         const nvinfer1::PluginFieldCollection *fc) {
     std::vector<float> scaleValues;
     std::vector<float> biasValues;
@@ -366,7 +347,7 @@ IPluginV2Ext *InstanceNormalizationPluginCreator::createPlugin(const char *name,
     return obj;
 }
 
-IPluginV2Ext *InstanceNormalizationPluginCreator::deserializePlugin(const char *name,
+IPluginV2IOExt *InstanceNormalizationPluginCreator::deserializePlugin(const char *name,
         const void *serialData, size_t serialLength) {
     auto obj = new InstanceNormalizationPlugin{serialData, serialLength};
     obj->setPluginNamespace(mNamespace.c_str());
